@@ -89,7 +89,10 @@ CREATE INDEX IF NOT EXISTS idx_nodes_subscription_order ON nodes(subscription_id
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
    ```
 
-
+--批量数据库需要
+   ```bash
+ALTER TABLE nodes ADD COLUMN enabled INTEGER DEFAULT 1;
+   ```
 
 ### 3. 配置环境变量
 
