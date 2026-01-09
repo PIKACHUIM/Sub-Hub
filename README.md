@@ -52,47 +52,41 @@ Sub-Hub 是一个基于 Cloudflare Workers 的代理节点订阅管理系统。�
 
 ### 2. 初始化数据库，在名为“sub-hub” 的D1 数据库“控制台中执行如下代码”
 
--- 创建订阅表
+-- 数据库初始化
    ```bash
 CREATE TABLE IF NOT EXISTS subscriptions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    path TEXT NOT NULL UNIQUE
+  id INTEGER PRIMARY KEY AUTOINCREMENT, 
+  name TEXT NOT NULL, 
+  path TEXT NOT NULL UNIQUE, 
+  sub_order INTEGER DEFAULT 0, 
+  updated_at INTEGER, 
+  converter_backend TEXT DEFAULT 'sub.xeton.dev'
 );
-   ```
 
--- 创建节点表
-   ```bash
 CREATE TABLE IF NOT EXISTS nodes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    subscription_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    original_link TEXT NOT NULL,
-    node_order INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
+  id INTEGER PRIMARY KEY AUTOINCREMENT, 
+  subscription_id INTEGER NOT NULL, 
+  name TEXT NOT NULL, 
+  original_link TEXT NOT NULL, 
+  node_order INTEGER NOT NULL DEFAULT 0, 
+  enabled INTEGER DEFAULT 1, 
+  FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
 );
-   ```
 
--- 创建会话表
-   ```bash
 CREATE TABLE IF NOT EXISTS sessions (
-    session_id TEXT PRIMARY KEY,
-    username TEXT NOT NULL,
-    expires_at INTEGER NOT NULL
+  session_id TEXT PRIMARY KEY, 
+  username TEXT NOT NULL, 
+  expires_at INTEGER NOT NULL
 );
-   ```
 
--- 创建索引
-   ```bash
 CREATE INDEX IF NOT EXISTS idx_subscriptions_path ON subscriptions(path);
 CREATE INDEX IF NOT EXISTS idx_nodes_subscription_order ON nodes(subscription_id, node_order);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+
+);
    ```
 
---批量数据库需要
-   ```bash
-ALTER TABLE nodes ADD COLUMN enabled INTEGER DEFAULT 1;
-   ```
+
 
 ### 3. 配置环境变量
 
