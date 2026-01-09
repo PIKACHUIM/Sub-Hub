@@ -98,12 +98,12 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
 
 
-### 5. 部署代码
+### 4. 部署代码
 
 1. 将“worker.js”文件内容复制到Cloudflare Workers保存
 
 
-### 6. 访问系统
+### 5. 访问系统
 
 1. 访问管理面板：
    ```
