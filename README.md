@@ -83,7 +83,6 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_path ON subscriptions(path);
 CREATE INDEX IF NOT EXISTS idx_nodes_subscription_order ON nodes(subscription_id, node_order);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
-);
    ```
 
 
