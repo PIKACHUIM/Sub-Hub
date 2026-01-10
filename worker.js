@@ -70,9 +70,9 @@ export default {
       return new Response('Not Found', { status: 404 });
     }
 
-    const adminPath = env.ADMIN_PATH || 'weiyunkj';
-    const adminUsername = env.ADMIN_USERNAME || 'weiyunkj';
-    const adminPassword = env.ADMIN_PASSWORD || 'Gundan520.';
+    const adminPath = env.ADMIN_PATH || 'admin';
+    const adminUsername = env.ADMIN_USERNAME || 'admin';
+    const adminPassword = env.ADMIN_PASSWORD || 'pass';
     
     // 处理登录页面请求
     if (pathname === `/${adminPath}/login`) {
