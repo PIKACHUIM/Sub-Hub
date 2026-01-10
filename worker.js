@@ -2391,9 +2391,13 @@ function serveAdminPanel(env, adminPath) {
   </nav>
 
   <div class="container">
-    <div class="page-header">
-      <div class="page-title">${SVG_ICONS.terminal} // subscription_manager</div>
-      <button class="btn btn-primary" onclick="showModal('addSubscriptionModal')">
+  <div class="page-header">
+  <div class="page-title">
+    ${SVG_ICONS.terminal} // subscription_manager
+    <span id="globalStats" style="margin-left: 1rem; font-size: 0.7rem; color: var(--text-dim);"></span>
+  </div>
+  <button class="btn btn-primary" onclick="showModal('addSubscriptionModal')">
+
         ${SVG_ICONS.plus}
         <span>添加订阅</span>
       </button>
@@ -3209,6 +3213,11 @@ Base64编码格式
         if (!result.success) throw new Error(result.message || '加载失败');
         
         subscriptionsData = result.data || [];
+        // 更新顶部统计
+const totalNodes = subscriptionsData.reduce((sum, sub) => sum + (sub.nodeCount || 0), 0);
+document.getElementById('globalStats').textContent = 
+  '[ ' + subscriptionsData.length + ' 个订阅 / ' + totalNodes + ' 个节点 ]';
+
         const listElement = document.getElementById('subscriptionList');
         
         if (isCompactMode) {
