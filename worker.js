@@ -751,7 +751,7 @@ function serveLoginPage(adminPath) {
     }
 
     body {
-      font-family: var(--font-body);
+font-family: var(--font-ui);
       background: var(--bg-body);
       min-height: 100vh;
       display: flex;
@@ -897,7 +897,7 @@ function serveLoginPage(adminPath) {
       border-radius: var(--radius-sm);
       color: var(--text-main);
       font-size: 1rem;
-      font-family: var(--font-body);
+font-family: var(--font-ui);
       transition: all 0.3s ease;
       backdrop-filter: blur(10px);
     }
@@ -923,7 +923,7 @@ function serveLoginPage(adminPath) {
       color: white;
       font-size: 1rem;
       font-weight: 600;
-      font-family: var(--font-body);
+font-family: var(--font-ui);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -968,7 +968,7 @@ function serveLoginPage(adminPath) {
       margin-bottom: 1.5rem;
       font-size: 0.9rem;
       color: var(--danger);
-      font-family: var(--font-body);
+font-family: var(--font-ui);
       animation: shake 0.5s ease;
     }
 
@@ -980,7 +980,7 @@ function serveLoginPage(adminPath) {
 
     .terminal-prompt {
       color: var(--text-dim);
-      font-family: var(--font-body);
+font-family: var(--font-ui);
       font-size: 0.8rem;
       text-align: center;
       margin-top: 2rem;
@@ -1170,7 +1170,7 @@ function serveLoginPage(adminPath) {
         
         if (data.success) {
           // 登录成功动画
-          document.querySelector('.btn-login').style.background = 'linear-gradient(135deg, var(--success), var(--primary))';
+          document.querySelector('.btn-login').style.background = 'linear-gradient(135deg, #10b981, #6366f1)';
           setTimeout(() => {
             window.location.href = data.redirect;
           }, 800);
@@ -1334,6 +1334,14 @@ function serveAdminPanel(env, adminPath) {
       --text-main: #1a1a1a;
       --text-sub: #666666;
       --text-dim: #999999;
+      --success: #059669;
+      --success-light: #10b981;
+      --danger: #dc2626;
+      --danger-light: #ef4444;
+      --warning: #d97706;
+      --warning-light: #f59e0b;
+      --info: #2563eb;
+      --info-light: #3b82f6;
     }
 
     * {
@@ -1631,19 +1639,42 @@ function serveAdminPanel(env, adminPath) {
       cursor: not-allowed;
     }
 
+    /* 订阅卡片 - 科技感设计 */
     .subscription-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius);
-      margin-bottom: 1rem;
-      overflow: visible;
-      transition: all 0.3s ease;
-      box-shadow: var(--shadow-sm);
+      background: linear-gradient(145deg, var(--bg-card), rgba(26, 26, 46, 0.8));
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+
+    .subscription-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+      transition: left 0.6s ease;
     }
 
     .subscription-card:hover {
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 40px rgba(99, 102, 241, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.4);
+      transform: translateY(-4px) scale(1.01);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .subscription-card:hover::before {
+      left: 100%;
     }
 
     .subscription-header {
