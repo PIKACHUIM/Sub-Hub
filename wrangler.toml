@@ -1,0 +1,19 @@
+name = "sub-hub"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# 环境变量配置
+[vars]
+ADMIN_PATH = "admin"
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "pass"
+
+# D1数据库绑定（需要在Cloudflare Dashboard中创建并绑定）
+[[d1_databases]]
+binding = "DB"
+database_name = "sub-hub"
+database_id = ""  # 需要替换为实际的数据库ID
+
+# 部署配置
+[env.production]
+compatibility_date = "2024-01-01"

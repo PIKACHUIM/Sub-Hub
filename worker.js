@@ -12,7 +12,8 @@ const NODE_TYPES = {
   SOCKS: 'socks://',
   HYSTERIA2: 'hysteria2://',
   TUIC: 'tuic://',
-  SNELL: 'snell,'
+  SNELL: 'snell,',
+  WIREGUARD: 'wireguard://'
 };
 
 // 订阅转换器后端列表
@@ -46,6 +47,29 @@ function extractNodeName(nodeLink) {
       }
     } catch {}
     return '未命名节点';
+  }
+
+  // 处理 WireGuard 链接
+  if (nodeLink.toLowerCase().startsWith(NODE_TYPES.WIREGUARD)) {
+    try {
+      // 解析 WireGuard 链接格式: wireguard://[privatekey]@[endpoint]?[params]#[name]
+      const url = new URL(nodeLink);
+      const hash = url.hash;
+      if (hash && hash.length > 1) {
+        return decodeURIComponent(hash.substring(1));
+      }
+      
+      // 如果没有哈希名称，尝试从参数中提取
+      const params = new URLSearchParams(url.search);
+      const nameParam = params.get('name');
+      if (nameParam) {
+        return decodeURIComponent(nameParam);
+      }
+      
+      // 如果还没有名称，使用端点作为名称
+      return url.hostname || 'WireGuard节点';
+    } catch {}
+    return 'WireGuard节点';
   }
 
   // 处理其他使用哈希标记名称的链接类型
@@ -292,8 +316,51 @@ export default {
       });
     }
     
+    // 处理根路径访问 - 显示友好的404页面
+    if (pathname === '/') {
+      const html = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sub-Hub - 代理节点订阅管理系统</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 100px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #333; margin-bottom: 20px; }
+        p { color: #666; line-height: 1.6; margin-bottom: 30px; }
+        .login-btn { background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; }
+        .login-btn:hover { background: #0056b3; }
+        .features { margin-top: 30px; text-align: left; }
+        .feature-item { margin: 10px 0; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+<!--        <h1>🚀 Sub-Hub 代理节点订阅管理系统</h1>-->
+<!--        <p>抱歉，您访问的页面不存在。这是一个基于 Cloudflare Workers 的代理节点订阅管理系统。</p>-->
+        <h1>404 网站不存在</h1>
+        <p>抱歉，您访问的页面不存在</p>
+<!--        <div class="features">-->
+<!--            <div class="feature-item">✅ 支持多种代理协议：SS、VMess、Trojan、VLESS、SOCKS5、Snell、WireGuard</div>-->
+<!--            <div class="feature-item">✅ 订阅管理：创建多个独立订阅，自定义订阅路径</div>-->
+<!--            <div class="feature-item">✅ 多种订阅格式：原始格式、Base64编码、Surge配置</div>-->
+<!--            <div class="feature-item">✅ 安全特性：管理面板登录认证，会话管理</div>-->
+<!--        </div>-->
+        
+        <p><a href="/${adminPath}" class="login-btn">管理面板</a></p>
+<!--        <p style="font-size: 14px; color: #999;">如需访问订阅，请使用正确的订阅路径，如：/your-subscription-path</p>-->
+    </div>
+</body>
+</html>`;
+      return new Response(html, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
+    
     // 处理订阅请求
-    if (pathname.startsWith('/')) {
+    if (pathname.startsWith('/') && pathname !== '/') {
       const pathParts = pathname.split('/').filter(Boolean);
       if (pathParts.length > 2) {
         return new Response('Not Found', { status: 404 });
@@ -431,7 +498,7 @@ async function handleReplaceNodes(request, env, subscriptionPath) {
       
       const lowerContent = originalLink.toLowerCase();
       const isSnell = lowerContent.includes('=') && lowerContent.includes('snell,');
-      if (!['ss://', 'vmess://', 'trojan://', 'vless://', 'socks://', 'hysteria2://', 'tuic://'].some(prefix => lowerContent.startsWith(prefix)) && !isSnell) {
+if (!['ss://', 'vmess://', 'trojan://', 'vless://', 'socks://', 'hysteria2://', 'tuic://', 'wireguard://'].some(prefix => lowerContent.startsWith(prefix)) && !isSnell) {
         continue;
       }
       
@@ -498,7 +565,7 @@ async function handleBatchCreateNodes(request, env, subscriptionPath) {
       
       const lowerContent = originalLink.toLowerCase();
       const isSnell = lowerContent.includes('=') && lowerContent.includes('snell,');
-      if (!['ss://', 'vmess://', 'trojan://', 'vless://', 'socks://', 'hysteria2://', 'tuic://'].some(prefix => lowerContent.startsWith(prefix)) && !isSnell) {
+if (!['ss://', 'vmess://', 'trojan://', 'vless://', 'socks://', 'hysteria2://', 'tuic://', 'wireguard://'].some(prefix => lowerContent.startsWith(prefix)) && !isSnell) {
         continue;
       }
       
@@ -634,37 +701,47 @@ function serveLoginPage(adminPath) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sub-Hub // Login</title>
+  <title>Sub-Hub | 登录认证</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-body: #050505;
-      --bg-card: #121212;
-      --bg-input: #0a0a0a;
-      --border-color: #27272a;
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --text-main: #e4e4e7;
-      --text-sub: #a1a1aa;
-      --text-dim: #71717a;
-      --success: #22c55e;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --radius: 10px;
-      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-code: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      /* 科技编辑风格配色 */
+      --bg-body: #0a0f1c;
+      --bg-card: rgba(16, 23, 41, 0.95);
+      --bg-input: rgba(22, 30, 54, 0.8);
+      --border-color: rgba(64, 97, 169, 0.3);
+      --primary: #00d4ff;
+      --primary-hover: #00b8e6;
+      --accent: #ff6b9d;
+      --text-main: #e8f4ff;
+      --text-sub: #a8c6e8;
+      --text-dim: #6d8cb8;
+      --success: #4ade80;
+      --danger: #f87171;
+      --warning: #fbbf24;
+      --radius: 16px;
+      --radius-sm: 8px;
+      --font-heading: 'Playfair Display', serif;
+      --font-body: 'Source Sans Pro', sans-serif;
+      --shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
 
     [data-theme="light"] {
-      --bg-body: #f5f5f5;
-      --bg-card: #ffffff;
-      --bg-input: #f0f0f0;
-      --border-color: #e0e0e0;
-      --text-main: #1a1a1a;
-      --text-sub: #666666;
-      --text-dim: #999999;
+      --bg-body: #f8fafc;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-input: rgba(248, 250, 252, 0.8);
+      --border-color: rgba(203, 213, 225, 0.6);
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #ec4899;
+      --text-main: #1e293b;
+      --text-sub: #475569;
+      --text-dim: #64748b;
+      --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
 
     * {
@@ -674,7 +751,7 @@ function serveLoginPage(adminPath) {
     }
 
     body {
-      font-family: var(--font-ui);
+      font-family: var(--font-body);
       background: var(--bg-body);
       min-height: 100vh;
       display: flex;
@@ -682,12 +759,30 @@ function serveLoginPage(adminPath) {
       justify-content: center;
       padding: 20px;
       color: var(--text-main);
-      transition: background-color 0.3s, color 0.3s;
+      transition: background-color 0.6s ease, color 0.6s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 背景效果 */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 107, 157, 0.05) 0%, transparent 50%),
+        linear-gradient(135deg, var(--bg-body) 0%, transparent 100%);
+      z-index: -1;
     }
 
     .login-container {
       width: 100%;
-      max-width: 380px;
+      max-width: 420px;
+      animation: fadeInUp 0.8s ease-out;
     }
 
     .login-card {
@@ -695,169 +790,275 @@ function serveLoginPage(adminPath) {
       border: 1px solid var(--border-color);
       border-radius: var(--radius);
       overflow: hidden;
-      transition: background-color 0.3s, border-color 0.3s;
+      transition: all 0.4s ease;
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+    }
+
+    .login-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
     }
 
     .login-header {
-      padding: 2rem 2rem 1.5rem;
+      padding: 3rem 2.5rem 2rem;
       text-align: center;
       border-bottom: 1px solid var(--border-color);
+      position: relative;
     }
 
     .login-logo {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
-      border-radius: 12px;
-      margin-bottom: 1rem;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
       color: white;
+      box-shadow: 0 12px 24px rgba(0, 212, 255, 0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .login-logo:hover {
+      transform: scale(1.05) rotate(5deg);
+      box-shadow: 0 16px 32px rgba(0, 212, 255, 0.4);
     }
 
     .login-logo svg {
-      width: 28px;
-      height: 28px;
+      width: 36px;
+      height: 36px;
     }
 
     .login-title {
-      font-size: 1.25rem;
+      font-family: var(--font-heading);
+      font-size: 2.5rem;
       font-weight: 600;
       color: var(--text-main);
-      margin-bottom: 0.25rem;
-      font-family: var(--font-code);
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--text-main), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .login-subtitle {
-      font-size: 0.75rem;
+      font-size: 0.9rem;
       color: var(--text-dim);
-      font-family: var(--font-code);
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
     }
 
     .login-form {
-      padding: 1.5rem 2rem 2rem;
+      padding: 2rem 2.5rem 2.5rem;
     }
 
     .form-group {
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      position: relative;
     }
 
     .form-label {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      font-weight: 500;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
       color: var(--text-sub);
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
     }
 
     .form-label svg {
-      opacity: 0.7;
+      color: var(--primary);
+      transition: color 0.3s ease;
     }
 
     .form-input {
       width: 100%;
-      padding: 0.75rem 1rem;
+      padding: 1rem 1.25rem;
       background: var(--bg-input);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-sm);
       color: var(--text-main);
-      font-size: 0.875rem;
-      font-family: var(--font-code);
-      transition: border-color 0.2s, box-shadow 0.2s, background-color 0.3s;
+      font-size: 1rem;
+      font-family: var(--font-body);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
     }
 
     .form-input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.15);
+      transform: translateY(-2px);
     }
 
     .form-input::placeholder {
       color: var(--text-dim);
+      font-weight: 300;
     }
 
     .btn-login {
       width: 100%;
-      padding: 0.75rem 1.5rem;
-      background: var(--primary);
+      padding: 1.25rem 2rem;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
       border: none;
-      border-radius: 6px;
+      border-radius: var(--radius-sm);
       color: white;
-      font-size: 0.875rem;
-      font-weight: 500;
-      font-family: var(--font-ui);
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: var(--font-body);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      transition: background-color 0.2s, transform 0.1s;
-      margin-top: 1.5rem;
+      gap: 0.75rem;
+      transition: all 0.3s ease;
+      margin-top: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-login::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.6s ease;
     }
 
     .btn-login:hover {
-      background: var(--primary-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(0, 212, 255, 0.3);
+    }
+
+    .btn-login:hover::before {
+      left: 100%;
     }
 
     .btn-login:active {
-      transform: scale(0.98);
+      transform: translateY(-1px);
     }
 
     .alert {
       display: none;
-      padding: 0.75rem 1rem;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      border-radius: 6px;
-      margin-bottom: 1rem;
-      font-size: 0.8rem;
+      padding: 1rem 1.25rem;
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      border-radius: var(--radius-sm);
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
       color: var(--danger);
-      font-family: var(--font-code);
+      font-family: var(--font-body);
+      animation: shake 0.5s ease;
     }
 
     .alert.show {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
     }
 
     .terminal-prompt {
       color: var(--text-dim);
-      font-family: var(--font-code);
-      font-size: 0.7rem;
+      font-family: var(--font-body);
+      font-size: 0.8rem;
       text-align: center;
-      margin-top: 1.5rem;
+      margin-top: 2rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
     }
 
     .terminal-prompt span {
       color: var(--success);
+      font-weight: 600;
     }
 
     .theme-toggle {
       position: fixed;
-      top: 1rem;
-      right: 1rem;
+      top: 1.5rem;
+      right: 1.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 50%;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s ease;
       color: var(--text-main);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow-sm);
+      z-index: 1000;
     }
 
     .theme-toggle:hover {
       background: var(--bg-input);
-      transform: scale(1.05);
+      transform: scale(1.1) rotate(15deg);
+      border-color: var(--primary);
+    }
+
+    /* 动画定义 */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 480px) {
+      .login-container {
+        max-width: 100%;
+      }
+      
+      .login-header {
+        padding: 2rem 1.5rem 1.5rem;
+      }
+      
+      .login-form {
+        padding: 1.5rem 1.5rem 2rem;
+      }
+      
+      .login-logo {
+        width: 64px;
+        height: 64px;
+      }
+      
+      .login-title {
+        font-size: 2rem;
+      }
     }
   </style>
 </head>
@@ -873,7 +1074,7 @@ function serveLoginPage(adminPath) {
           ${SVG_ICONS.cube}
         </div>
         <h1 class="login-title">Sub-Hub</h1>
-        <p class="login-subtitle">// authentication required</p>
+        <p class="login-subtitle">认证访问</p>
       </div>
       
       <form class="login-form" id="loginForm">
@@ -933,7 +1134,22 @@ function serveLoginPage(adminPath) {
       iconEl.innerHTML = theme === 'dark' ? moonIcon : sunIcon;
     }
 
-    initTheme();
+    // 页面加载动画
+    document.addEventListener('DOMContentLoaded', function() {
+      initTheme();
+      
+      // 表单元素逐个显示动画
+      const formElements = document.querySelectorAll('.form-group, .btn-login');
+      formElements.forEach((el, index) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          el.style.transition = 'all 0.6s ease';
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        }, 200 + index * 100);
+      });
+    });
 
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -953,7 +1169,11 @@ function serveLoginPage(adminPath) {
         const data = await response.json();
         
         if (data.success) {
-          window.location.href = data.redirect;
+          // 登录成功动画
+          document.querySelector('.btn-login').style.background = 'linear-gradient(135deg, var(--success), var(--primary))';
+          setTimeout(() => {
+            window.location.href = data.redirect;
+          }, 800);
         } else {
           alertMessage.textContent = data.message || '认证失败';
           alert.classList.add('show');
@@ -1066,31 +1286,43 @@ function serveAdminPanel(env, adminPath) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sub-Hub // Console</title>
+  <title>Sub-Hub - 代理节点订阅管理系统</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <style>
     :root {
-      --bg-body: #050505;
-      --bg-card: #121212;
-      --bg-input: #0a0a0a;
-      --bg-hover: #1a1a1a;
-      --border-color: #27272a;
+      --bg-body: #0a0a0f;
+      --bg-card: #1a1a2e;
+      --bg-input: #161625;
+      --bg-hover: #252540;
+      --border-color: #2d2d42;
       --primary: #6366f1;
       --primary-hover: #4f46e5;
-      --text-main: #e4e4e7;
-      --text-sub: #a1a1aa;
-      --text-dim: #71717a;
-      --success: #22c55e;
+      --primary-light: #818cf8;
+      --text-main: #f0f0ff;
+      --text-sub: #a1a1cc;
+      --text-dim: #7171a6;
+      --success: #10b981;
+      --success-light: #34d399;
       --danger: #ef4444;
+      --danger-light: #f87171;
       --warning: #f59e0b;
+      --warning-light: #fbbf24;
       --info: #3b82f6;
-      --radius: 10px;
-      --radius-sm: 6px;
-      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --info-light: #60a5fa;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+      --font-ui: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-code: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+      --gradient-danger: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
     }
 
     [data-theme="light"] {
@@ -1219,8 +1451,6 @@ function serveAdminPanel(env, adminPath) {
       display: inline-flex;
       align-items: center;
     }
-    
-    
 
     .btn-theme {
       display: flex;
@@ -1241,7 +1471,6 @@ function serveAdminPanel(env, adminPath) {
       color: var(--warning);
       border-color: var(--warning);
     }
-    
 
     .btn-layout:hover {
       background: var(--bg-hover);
@@ -1325,25 +1554,31 @@ function serveAdminPanel(env, adminPath) {
     }
 
     .btn-primary {
-      background: var(--primary);
-      border-color: var(--primary);
+      background: var(--gradient-primary);
+      border-color: transparent;
       color: white;
+      box-shadow: var(--shadow-sm);
     }
 
     .btn-primary:hover {
       background: var(--primary-hover);
       border-color: var(--primary-hover);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
     }
 
     .btn-success {
-      background: var(--success);
-      border-color: var(--success);
+      background: var(--gradient-success);
+      border-color: transparent;
       color: white;
+      box-shadow: var(--shadow-sm);
     }
 
     .btn-success:hover {
-      background: #16a34a;
-      border-color: #16a34a;
+      background: var(--success-light);
+      border-color: var(--success-light);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
     }
 
     .btn-danger {
@@ -1364,8 +1599,8 @@ function serveAdminPanel(env, adminPath) {
     }
 
     .btn-warning:hover {
-      background: #d97706;
-      border-color: #d97706;
+      background: var(--warning-light);
+      border-color: var(--warning-light);
     }
 
     .btn-info {
@@ -1375,8 +1610,8 @@ function serveAdminPanel(env, adminPath) {
     }
 
     .btn-info:hover {
-      background: #2563eb;
-      border-color: #2563eb;
+      background: var(--info-light);
+      border-color: var(--info-light);
     }
 
     .btn-sm {
@@ -1396,14 +1631,19 @@ function serveAdminPanel(env, adminPath) {
       cursor: not-allowed;
     }
 
-    /* 订阅卡片 - 宽松模式 */
     .subscription-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius);
       margin-bottom: 1rem;
       overflow: visible;
-      transition: background-color 0.3s, border-color 0.3s;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .subscription-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
     }
 
     .subscription-header {
@@ -1429,6 +1669,7 @@ function serveAdminPanel(env, adminPath) {
 
     .sub-drag-handle:hover {
       opacity: 1;
+      color: var(--primary);
     }
 
     .subscription-info {
@@ -1448,6 +1689,7 @@ function serveAdminPanel(env, adminPath) {
       font-size: 1rem;
       font-weight: 600;
       color: var(--text-main);
+      font-family: var(--font-ui);
     }
 
     .node-count {
@@ -1491,27 +1733,30 @@ function serveAdminPanel(env, adminPath) {
     }
 
     .link-url {
-      color: var(--primary);
+      color: var(--primary-light);
       font-family: var(--font-code);
       text-decoration: none;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       max-width: 200px;
+      transition: color 0.2s;
     }
 
     .link-url:hover {
+      color: var(--primary);
       text-decoration: underline;
     }
 
     .btn-copy-link {
       opacity: 0.6;
-      transition: opacity 0.2s, color 0.2s;
+      transition: all 0.2s;
       flex-shrink: 0;
     }
 
     .btn-copy-link:hover {
       opacity: 1;
+      color: var(--primary);
     }
 
     .btn-copy-link.copied {
@@ -1532,6 +1777,11 @@ function serveAdminPanel(env, adminPath) {
     }
 
     .subscription-actions-row .btn {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* 紧凑模式样式 */
       flex: 1;
       min-width: 0;
     }
@@ -1739,7 +1989,6 @@ function serveAdminPanel(env, adminPath) {
       padding: 1rem 1.25rem;
     }
 
-    /* 节点筛选和搜索 */
     .node-toolbar {
       display: flex;
       align-items: center;
@@ -1763,11 +2012,13 @@ function serveAdminPanel(env, adminPath) {
       color: var(--text-main);
       font-size: 0.8rem;
       font-family: var(--font-code);
+      transition: all 0.2s ease;
     }
 
     .node-search input:focus {
       outline: none;
       border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
 
     .node-search input::placeholder {
@@ -1803,6 +2054,7 @@ function serveAdminPanel(env, adminPath) {
 
     .node-filter-btn:hover {
       background: var(--bg-hover);
+      border-color: var(--primary);
     }
 
     .node-filter-btn.active {
@@ -1832,7 +2084,7 @@ function serveAdminPanel(env, adminPath) {
 
     .node-row {
       border-bottom: 1px solid var(--border-color);
-      transition: background-color 0.15s;
+      transition: all 0.15s ease;
     }
 
     .node-row:last-child {
@@ -1841,6 +2093,7 @@ function serveAdminPanel(env, adminPath) {
 
     .node-row:hover {
       background: var(--bg-hover);
+      transform: translateX(2px);
     }
 
     .node-row td {
@@ -1889,6 +2142,7 @@ function serveAdminPanel(env, adminPath) {
 
     .drag-handle:hover {
       opacity: 1;
+      color: var(--primary);
     }
 
     .node-name {
@@ -1928,13 +2182,14 @@ function serveAdminPanel(env, adminPath) {
       font-family: var(--font-code);
       text-transform: uppercase;
       flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
-    .node-type-ss { background: #10b981; color: white; }
-    .node-type-vmess { background: #8b5cf6; color: white; }
-    .node-type-trojan { background: #ef4444; color: white; }
-    .node-type-vless { background: #3b82f6; color: white; }
-    .node-type-hysteria2 { background: #f59e0b; color: #000; }
+    .node-type-ss { background: var(--success); color: white; }
+    .node-type-vmess { background: var(--primary); color: white; }
+    .node-type-trojan { background: var(--danger); color: white; }
+    .node-type-vless { background: var(--info); color: white; }
+    .node-type-hysteria2 { background: var(--warning); color: #000; }
     .node-type-tuic { background: #ec4899; color: white; }
     .node-type-socks { background: #6b7280; color: white; }
     .node-type-snell { background: #14b8a6; color: white; }
@@ -1949,6 +2204,7 @@ function serveAdminPanel(env, adminPath) {
       background: var(--bg-input);
       border-radius: var(--radius-sm);
       margin-bottom: 1rem;
+      box-shadow: var(--shadow-sm);
     }
 
     .batch-actions-left {
@@ -2373,7 +2629,7 @@ function serveAdminPanel(env, adminPath) {
   <nav class="navbar">
     <a class="navbar-brand" href="#">
       <span class="logo">${SVG_ICONS.cube}</span>
-      <span>Sub-Hub</span>
+      <span>Sub-Hub 管理系统</span>
     </a>
     <div class="navbar-right">
     <button class="btn-layout" id="layoutToggle" onclick="toggleLayout()" title="切换布局">
@@ -2393,7 +2649,7 @@ function serveAdminPanel(env, adminPath) {
   <div class="container">
   <div class="page-header">
   <div class="page-title">
-    ${SVG_ICONS.terminal} // subscription_manager
+    ${SVG_ICONS.terminal} 订阅管理控制台
     <span id="globalStats" style="margin-left: 1rem; font-size: 0.7rem; color: var(--text-dim);"></span>
   </div>
   <button class="btn btn-primary" onclick="showModal('addSubscriptionModal')">
@@ -2494,6 +2750,7 @@ vless://...
 socks://...
 hysteria2://...
 tuic://...
+wireguard://...
 snell格式（仅Surge）
 Base64编码格式
 
@@ -2713,7 +2970,8 @@ Base64编码格式
       SOCKS: 'socks://',
       HYSTERIA2: 'hysteria2://',
       TUIC: 'tuic://',
-      SNELL: 'snell,'
+      SNELL: 'snell,',
+      WIREGUARD: 'wireguard://'
     };
 
     // 获取节点类型
@@ -2728,6 +2986,7 @@ Base64编码格式
       if (lowerLink.startsWith('hysteria2://')) return 'hysteria2';
       if (lowerLink.startsWith('tuic://')) return 'tuic';
       if (lowerLink.startsWith('socks://')) return 'socks';
+      if (lowerLink.startsWith('wireguard://')) return 'wireguard';
       if (lowerLink.includes('snell,')) return 'snell';
       
       return 'unknown';
@@ -4156,7 +4415,7 @@ async function handleCreateNode(request, env, subscriptionPath) {
 
   const lowerContent = originalLink.toLowerCase();
   const isSnell = lowerContent.includes('=') && lowerContent.includes('snell,');
-  if (!['ss://', 'vmess://', 'trojan://', 'vless://', 'socks://', 'hysteria2://', 'tuic://'].some(prefix => lowerContent.startsWith(prefix)) && !isSnell) {
+if (!['ss://', 'vmess://', 'trojan://', 'vless://', 'socks://', 'hysteria2://', 'tuic://', 'wireguard://'].some(prefix => lowerContent.startsWith(prefix)) && !isSnell) {
     return createErrorResponse('不支持的节点格式', 400);
   }
   
