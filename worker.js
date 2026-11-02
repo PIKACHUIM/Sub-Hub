@@ -1,3 +1,5 @@
+import { createKvDatabase } from './kv-d1.mjs';
+
 // 通用的路径验证和节点名称提取函数
 function validateSubscriptionPath(path) {
   return /^[a-z0-9-]{5,50}$/.test(path);
@@ -86,6 +88,8 @@ function extractNodeName(nodeLink) {
 
 export default {
   async fetch(request, env) {
+    // Storage is KV now; env.DB stays the call surface the handlers already use.
+    env = { ...env, DB: createKvDatabase(env.SUBLINK_KV) };
     const url = new URL(request.url);
     const pathname = url.pathname;
     const method = request.method;
